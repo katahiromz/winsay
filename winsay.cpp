@@ -17,8 +17,7 @@
 
 #include "winsay.hpp"
 
-// TODO: rate, progress, mp3,
-//       channels, quality, data-format
+// TODO: rate, progress, mp3, data-format
 
 // bit-rates in Hz
 static const INT s_bit_rates[] =
@@ -68,7 +67,7 @@ void winsay_show_help(void)
     printf("\n");
     printf("--file-format=format    The format of the output file to write.\n");
     printf("--bit-rate=rate         The bit-rate value (Hz).\n");
-    printf("--channels=number       The number of channels.\n");
+    printf("--channels=number       The number of channels (1 or 2).\n");
     printf("--quality=quality       The audio converter quality (ignored).\n");
 }
 
@@ -540,14 +539,14 @@ int winsay_main(WINSAY_DATA& data)
         }
 
         // get last 4 characters
-        std::string fourchars;
+        std::string four_chars;
         if (data.output_file.size() >= 4)
         {
-            fourchars = data.output_file.substr(data.output_file.size() - 4, 4);
+            four_chars = data.output_file.substr(data.output_file.size() - 4, 4);
         }
-        CharLowerA(&fourchars[0]);
+        CharLowerA(&four_chars[0]);
 
-        if (fourchars != ".wav")
+        if (four_chars != ".wav")
         {
             data.output_file += data.file_format;
         }
