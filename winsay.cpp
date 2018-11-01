@@ -17,8 +17,14 @@
 
 #include "winsay.hpp"
 
-// TODO: rate, progress, bit-rate, mp3,
+// TODO: rate, progress, mp3,
 //       channels, quality, data-format
+
+// bit-rates in Hz
+static const INT s_bit_rates[] =
+{
+    8000, 11025, 22050, 44100
+};
 
 using std::printf;
 using std::fprintf;
@@ -61,6 +67,7 @@ void winsay_show_help(void)
     printf("--voice=?               List all available voices.\n");
     printf("\n");
     printf("--file-format=format    The format of the output file to write.\n");
+    printf("--bit-rate=rate         The bit-rate value (Hz).\n");
     printf("--quality=quality       The audio converter quality (ignored).\n");
 }
 
@@ -74,6 +81,7 @@ static struct option winsay_opts[] =
     { "voice", required_argument, NULL, 'v' },
     { "quality", required_argument, NULL, 0 },
     { "file-format", required_argument, NULL, 0 },
+    { "bit-rate", required_argument, NULL, 0 },
     { NULL, 0, NULL, 0 },
 };
 
@@ -101,43 +109,79 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
         {
         case 0:     // no short option
             arg = winsay_opts[opt_index].name;
+
             if (arg == "version")
             {
                 winsay_show_version();
                 exit(EXIT_SUCCESS);
             }
+
             if (arg == "file-format")
             {
                 data.file_format = optarg;
-                if (strcmp(optarg, "?") == 0)
+                if (data.file_format == "?")
                 {
                     data.mode = WINSAY_GETFILEFORMATS;
                 }
             }
+
+            if (arg == "bit-rate")
+            {
+                if (strcmp(optarg, "?") == 0)
+                {
+                    data.mode = WINSAY_GETBITRATES;
+                    data.bit_rate = 0;
+                    break;
+                }
+
+                data.bit_rate = strtol(optarg, NULL, 10);
+
+                bool found = false;
+                for (size_t i = 0; i < ARRAYSIZE(s_bit_rates); ++i)
+                {
+                    if (s_bit_rates[i] == data.bit_rate)
+                    {
+                        found = true;
+                    }
+                }
+
+                if (!found)
+                {
+                    fprintf(stderr, "ERROR: invalid bit-rate.\n");
+                    return RET_INVALID_ARGUMENT;
+                }
+            }
+
             if (arg == "quality")
             {
                 // simply ignored
             }
+
             break;
+
         case 'h':
             winsay_show_help();
             exit(EXIT_SUCCESS);
             break;
+
         case 'f':
             if (optarg)
                 data.input_file = optarg;
             else
                 data.input_file = "-";
             break;
+
         case 'o':
             data.output_file = optarg;
             data.mode = WINSAY_OUTPUT;
             break;
+
         case 'v':
             if (strcmp(optarg, "?") == 0)
                 data.mode = WINSAY_GETVOICES;
             data.voice = optarg;
             break;
+
         case '?':
         default:
             // error
@@ -149,12 +193,14 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
                     fprintf(stderr, "ERROR: option '-%c' requires a parameter.\n", optopt);
                 }
                 break;
+
             case 'o':
                 if (!optarg)
                 {
                     fprintf(stderr, "ERROR: option '-%c' requires a parameter.\n", optopt);
                 }
                 break;
+
             case 'v':
                 if (optarg)
                 {
@@ -166,9 +212,11 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
                     fprintf(stderr, "ERROR: option '-%c' requires a parameter.\n", optopt);
                 }
                 break;
+
             case 0:
                 fprintf(stderr, "ERROR: invalid option.\n");
                 break;
+
             default:
                 fprintf(stderr, "ERROR: invalid option '-%c'.\n", optopt);
                 break;
@@ -187,6 +235,7 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
     {
     case WINSAY_SAY:
     case WINSAY_OUTPUT:
+        // need input
         if (data.text.empty())
         {
             // no text. input now
@@ -212,8 +261,8 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
             }
         }
         break;
-    case WINSAY_GETVOICES:
-    case WINSAY_GETFILEFORMATS:
+
+    default:
         break;
     }
 
@@ -395,20 +444,22 @@ int winsay_main(WINSAY_DATA& data)
         return EXIT_FAILURE;
     }
 
-    if (data.file_format == "?")
+    switch (data.mode)
     {
+    case WINSAY_GETFILEFORMATS:
         // dump available file formats
         printf("wav      WAVE format\n");
         return EXIT_SUCCESS;
-    }
 
-    // the working objects
-    WinVoice voice;
-    ISpObjectToken *pVoiceToken = NULL;
-    ISpStream *pStream = NULL;
+    case WINSAY_GETBITRATES:
+        // dump available bit rates
+        for (size_t i = 0; i < ARRAYSIZE(s_bit_rates); ++i)
+        {
+            printf("%6d\n", s_bit_rates[i]);
+        }
+        return EXIT_SUCCESS;
 
-    if (data.voice == "?")
-    {
+    case WINSAY_GETVOICES:
         // dump voices
         for (size_t i = 0; i < voice_tokens.size(); ++i)
         {
@@ -424,7 +475,15 @@ int winsay_main(WINSAY_DATA& data)
             }
         }
         return EXIT_SUCCESS;
+
+    default:
+        break;
     }
+
+    // the working objects
+    WinVoice voice;
+    ISpObjectToken *pVoiceToken = NULL;
+    ISpStream *pStream = NULL;
 
     if (data.voice.size())
     {
@@ -481,9 +540,9 @@ int winsay_main(WINSAY_DATA& data)
             fmt.wFormatTag = WAVE_FORMAT_PCM;
             fmt.nChannels = 1; 
             fmt.wBitsPerSample = 16;
-            fmt.nSamplesPerSec = 44100;
-            fmt.nBlockAlign = 2; 
-            fmt.nAvgBytesPerSec = 88200;
+            fmt.nSamplesPerSec = data.bit_rate;
+            fmt.nBlockAlign = 2;
+            fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nChannels * fmt.wBitsPerSample / 8;
             fmt.cbSize = 0;
 
             GUID GUID_SPDFID_WaveFormatEx;
