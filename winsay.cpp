@@ -406,7 +406,6 @@ int winsay(void)
     if (g_file_format == "?")
     {
         printf("wav      WAVE format\n");
-        printf("mp3      MP3 format\n");
         return EXIT_SUCCESS;
     }
 
@@ -449,10 +448,14 @@ int winsay(void)
             g_file_format = "." + g_file_format;
         }
 
-        if (g_output_file.find(".wav") == std::string::npos &&
-            g_output_file.find(".WAV") == std::string::npos &&
-            g_output_file.find(".mp3") == std::string::npos &&
-            g_output_file.find(".MP3") == std::string::npos)
+        std::string dotext;
+        if (g_output_file.size() >= 4)
+        {
+            dotext = g_output_file.substr(g_output_file.size() - 4, 4);
+        }
+        CharLowerA(&dotext[0]);
+
+        if (dotext != ".wav")
         {
             g_output_file += g_file_format;
         }
