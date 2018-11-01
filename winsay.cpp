@@ -625,15 +625,15 @@ winsay_destroy(WINSAY_DATA *data)
 }
 
 #ifndef WINSPY_LIBRARY
-// the main function
-int main(int argc, char **argv)
-{
-    winsay_co_init co_init;
-    WINSAY_DATA data;
+    // the main function
+    int main(int argc, char **argv)
+    {
+        winsay_co_init co_init;
+        WINSAY_DATA data;
 
-    if (EXIT_SUCCESS != winsay_command_line(&data, argc, argv))
-        return EXIT_FAILURE;
+        if (EXIT_SUCCESS != winsay_command_line(&data, argc, argv))
+            return EXIT_FAILURE;
 
-    return winsay_say(&data);
-}
+        return winsay_say(&data);
+    }
 #endif  // ndef WINSPY_LIBRARY
