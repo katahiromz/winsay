@@ -182,31 +182,28 @@ int parse_command_line(int argc, char **argv)
         g_text += argv[i];
     }
 
-    if (g_mode == WINSAY_SAY)
+    if (g_mode == WINSAY_SAY && g_text.empty())
     {
-        if (g_text.empty())
+        FILE *fp;
+        if (g_input_file != "-" && g_input_file.size())
         {
-            if (g_input_file != "-" && g_input_file.size())
-            {
-                if (FILE *fp = fopen(g_input_file.c_str(), "rb"))
-                {
-                    char buf[256];
-                    while (fgets(buf, ARRAYSIZE(buf), fp))
-                    {
-                        g_text += buf;
-                    }
-                    fclose(fp);
-                }
-            }
+            fp = fopen(g_input_file.c_str(), "rb");
+        }
+        else
+        {
+            fp = stdin;
         }
 
-        if (g_text.empty() || g_input_file == "-" || g_input_file.empty())
+        if (fp)
         {
             char buf[256];
-            while (fgets(buf, ARRAYSIZE(buf), stdin))
+            while (fgets(buf, ARRAYSIZE(buf), fp))
             {
                 g_text += buf;
             }
+
+            if (fp != stdin)
+                fclose(fp);
         }
     }
 
