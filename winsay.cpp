@@ -1,4 +1,4 @@
-// winsay_main.cpp --- Windows says things.
+// winsay.cpp --- Windows says things.
 // Copyright (C) 2018 Katayama Hirofumi MZ <katayama.hirofumi.mz@gmail.com>.
 // This file is public domain software.
 
@@ -51,14 +51,14 @@ struct WINSAY_DATA
 // show version info
 void winsay_show_version(void)
 {
-    printf("winsay_main version 0.6 by katahiromz\n");
+    printf("winsay version 0.6 by katahiromz\n");
 }
 
 // show help
 void winsay_show_help(void)
 {
-    printf("winsay_main -- Windows says things\n");
-    printf("Usage: winsay_main [options] string...\n");
+    printf("winsay -- Windows says things\n");
+    printf("Usage: winsay [options] string...\n");
     printf("\n");
     printf("Options:\n");
     printf("--help                  Show this help.\n");
