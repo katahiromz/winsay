@@ -112,7 +112,7 @@ winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
 
     data.mode = WINSAY_SAY;
 
-    // for each command line options
+    // for each command line option
     while ((opt = getopt_long(argc, argv, "hv:i:o:", winsay_opts, &opt_index)) != -1)
     {
         switch (opt)
@@ -346,6 +346,7 @@ winsay_get_voices(const WCHAR *pszRequest,
         hr = pCategory->EnumTokens(pszRequest, NULL, &pTokens);
         if (SUCCEEDED(hr) && pTokens)
         {
+            // for each token
             for (;;)
             {
                 // get token
@@ -467,19 +468,21 @@ int winsay_main(WINSAY_DATA& data)
     // take care of output file
     if (data.output_file.size())
     {
+        // add dot
         if (data.file_format.size() && data.file_format[0] != '.')
         {
             data.file_format = "." + data.file_format;
         }
 
-        std::string dotext;
+        // get last 4 characters
+        std::string fourchars;
         if (data.output_file.size() >= 4)
         {
-            dotext = data.output_file.substr(data.output_file.size() - 4, 4);
+            fourchars = data.output_file.substr(data.output_file.size() - 4, 4);
         }
-        CharLowerA(&dotext[0]);
+        CharLowerA(&fourchars[0]);
 
-        if (dotext != ".wav")
+        if (fourchars != ".wav")
         {
             data.output_file += data.file_format;
         }
