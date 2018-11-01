@@ -40,7 +40,7 @@ enum RET
 extern "C" void
 winsay_show_version(void)
 {
-    printf("winsay version 0.7 by katahiromz\n");
+    printf("winsay version 0.8 by katahiromz\n");
 }
 
 // show help
@@ -447,7 +447,7 @@ winsay_get_voices(const WCHAR *pszRequest,
 
 // make windows say
 extern "C" int
-winsay_main(WINSAY_DATA *data)
+winsay_say(WINSAY_DATA *data)
 {
     if (0)
     {
@@ -622,6 +622,6 @@ int main(int argc, char **argv)
     if (0 != winsay_command_line(&data, argc, argv))
         return EXIT_FAILURE;
 
-    return winsay_main(&data);
+    return winsay_say(&data);
 }
 #endif  // ndef WINSPY_LIBRARY

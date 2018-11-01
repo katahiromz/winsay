@@ -83,7 +83,7 @@ void winsay_show_help(void);
 // parse the command line
 int winsay_command_line(WINSAY_DATA *data, int argc, char **argv);
 // make windows say
-int winsay_main(WINSAY_DATA *data);
+int winsay_say(WINSAY_DATA *data);
 // destroy WINSAY_DATA structure
 void winsay_destroy(WINSAY_DATA *data);
 
