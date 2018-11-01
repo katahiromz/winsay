@@ -278,7 +278,7 @@ winsay_get_voice_token_info(LPCWSTR pszID, HKEY hSubKey)
     std::wstring name = szName;
 
     static const WCHAR szMicrosoftSp[] = L"Microsoft ";
-    INT cchMicrosoftSp = lstrlenW(szMicrosoftSp);
+    size_t cchMicrosoftSp = wcslen(szMicrosoftSp);
     if (name.size() > cchMicrosoftSp &&
         name.substr(0, cchMicrosoftSp) == szMicrosoftSp)
     {
@@ -286,7 +286,7 @@ winsay_get_voice_token_info(LPCWSTR pszID, HKEY hSubKey)
     }
 
     static const WCHAR szSpDesktop[] = L" Desktop";
-    INT cchSpDesktop = lstrlenW(szSpDesktop);
+    size_t cchSpDesktop = wcslen(szSpDesktop);
     if (name.size() > cchSpDesktop &&
         name.substr(name.size() - cchSpDesktop, cchSpDesktop) == szSpDesktop)
     {
@@ -409,8 +409,9 @@ int winsay_main(WINSAY_DATA& data)
     if (data.voice == "?")
     {
         // dump voices
-        for (auto& token : voice_tokens)
+        for (size_t i = 0; i < voice_tokens.size(); ++i)
         {
+            VOICE_TOKEN& token = voice_tokens[i];
             WCHAR *endptr;
             WORD wLangID = (WORD)wcstoul(token.language.c_str(), &endptr, 16);
             if (*endptr == 0)
@@ -427,8 +428,9 @@ int winsay_main(WINSAY_DATA& data)
     if (data.voice.size())
     {
         // select a voice
-        for (auto& token : voice_tokens)
+        for (size_t i = 0; i < voice_tokens.size(); ++i)
         {
+            VOICE_TOKEN& token = voice_tokens[i];
             MAnsiToWide wVoice(CP_ACP, data.voice.c_str());
 
             if (lstrcmpiW(wVoice.c_str(), token.name.c_str()) == 0 ||
@@ -494,8 +496,7 @@ int winsay_main(WINSAY_DATA& data)
     }
 
     // speak now
-    HRESULT hr = voice.Speak(data.text, false);
-    //printf("HRESULT: %08lX\n", hr);
+    voice.Speak(data.text, false);
 
     // clean up
     if (pVoiceToken)
@@ -534,7 +535,7 @@ int main(int argc, char **argv)
     CAutoCoInitialize co_init;
     WINSAY_DATA data;
 
-    if (int ret = winsay_command_line(data, argc, argv))
+    if (0 != winsay_command_line(data, argc, argv))
         return EXIT_FAILURE;
 
     return winsay_main(data);
