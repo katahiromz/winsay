@@ -34,7 +34,7 @@ enum RET
 // show version info
 void winsay_show_version(void)
 {
-    printf("winsay version 0.6 by katahiromz\n");
+    printf("winsay version 0.7 by katahiromz\n");
 }
 
 // show help
