@@ -11,7 +11,7 @@
     #include <getopt.h> // for GNU getopt_long
 #endif
 
-// TODO: output, rate, progress, output-file, bit-rate,
+// TODO: rate, progress, bit-rate,
 //       channels, quality, data-format
 
 #include "WinVoice.hpp"
@@ -28,6 +28,7 @@ std::string g_input_file = "-";
 std::string g_output_file;
 std::string g_voice;
 std::string g_text;
+std::string g_file_format = ".wav";
 
 // return value
 enum RET
@@ -41,6 +42,7 @@ enum WINSAY_MODE
     WINSAY_SAY,
     WINSAY_OUTPUT,
     WINSAY_GETVOICES,
+    WINSAY_GETFILEFORMATS
 };
 WINSAY_MODE g_mode = WINSAY_SAY;
 
@@ -73,6 +75,7 @@ void show_help(void)
     printf("--voice=voice           A voice to be used.\n");
     printf("--voice=?               List all available voices.\n");
     printf("\n");
+    printf("--file-format=format    The format of the output file to write.\n");
     printf("--quality=quality       The audio converter quality (ignored).\n");
 }
 
@@ -85,6 +88,7 @@ struct option opts[] =
     { "output-file", required_argument, NULL, 'o' },
     { "voice", required_argument, NULL, 'v' },
     { "quality", required_argument, NULL, 0 },
+    { "file-format", required_argument, NULL, 0 },
     { NULL, 0, NULL, 0 },
 };
 
@@ -113,6 +117,14 @@ int parse_command_line(int argc, char **argv)
             {
                 show_version();
                 exit(EXIT_SUCCESS);
+            }
+            if (arg == "file-format")
+            {
+                g_file_format = optarg;
+                if (strcmp(optarg, "?") == 0)
+                {
+                    g_mode = WINSAY_GETFILEFORMATS;
+                }
             }
             if (arg == "quality")
             {
@@ -212,6 +224,8 @@ int parse_command_line(int argc, char **argv)
         }
         break;
     case WINSAY_GETVOICES:
+        break;
+    case WINSAY_GETFILEFORMATS:
         break;
     }
 
@@ -389,6 +403,13 @@ int winsay(void)
         return EXIT_FAILURE;
     }
 
+    if (g_file_format == "?")
+    {
+        printf("wav      WAVE format\n");
+        printf("mp3      MP3 format\n");
+        return EXIT_SUCCESS;
+    }
+
     WinVoice voice;
     ISpObjectToken *pToken = NULL;
     ISpStream *pStream = NULL;
@@ -423,6 +444,19 @@ int winsay(void)
 
     if (g_output_file.size())
     {
+        if (g_file_format.size() && g_file_format[0] != '.')
+        {
+            g_file_format = "." + g_file_format;
+        }
+
+        if (g_output_file.find(".wav") == std::string::npos &&
+            g_output_file.find(".WAV") == std::string::npos &&
+            g_output_file.find(".mp3") == std::string::npos &&
+            g_output_file.find(".MP3") == std::string::npos)
+        {
+            g_output_file += g_file_format;
+        }
+
         ::CoCreateInstance(CLSID_SpStream, NULL, CLSCTX_ALL,
                            IID_ISpStream, (void **)&pStream);
         if (pStream)
