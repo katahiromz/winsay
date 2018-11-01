@@ -13,7 +13,7 @@
 #include "WinVoice.hpp"
 #include "MString.hpp"
 #include "MTextToText.hpp"
-#include <sphelper.h>
+#include <sphelper.h>   // This may needs ATL.
 
 #include "winsay.hpp"
 
