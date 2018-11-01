@@ -128,7 +128,7 @@ winsay_command_line(WINSAY_DATA *data, int argc, char **argv)
                 data->file_format = optarg;
                 if (data->file_format == "?")
                 {
-                    data->mode = WINSAY_GETFILEFORMATS;
+                    data->mode = WINSAY_ENUMFILEFORMATS;
                 }
             }
 
@@ -136,7 +136,7 @@ winsay_command_line(WINSAY_DATA *data, int argc, char **argv)
             {
                 if (strcmp(optarg, "?") == 0)
                 {
-                    data->mode = WINSAY_GETBITRATES;
+                    data->mode = WINSAY_ENUMBITRATES;
                     data->bit_rate = 0;
                     break;
                 }
@@ -163,7 +163,7 @@ winsay_command_line(WINSAY_DATA *data, int argc, char **argv)
             {
                 if (strcmp(optarg, "?") == 0)
                 {
-                    data->mode = WINSAY_GETCHANNELS;
+                    data->mode = WINSAY_ENUMCHANNELS;
                     break;
                 }
 
@@ -179,7 +179,7 @@ winsay_command_line(WINSAY_DATA *data, int argc, char **argv)
             {
                 if (strcmp(optarg, "?") == 0)
                 {
-                    data->mode = WINSAY_GETQUALITIES;
+                    data->mode = WINSAY_ENUMQUALITIES;
                     break;
                 }
                 // simply ignored
@@ -206,7 +206,7 @@ winsay_command_line(WINSAY_DATA *data, int argc, char **argv)
 
         case 'v':
             if (strcmp(optarg, "?") == 0)
-                data->mode = WINSAY_GETVOICES;
+                data->mode = WINSAY_ENUMVOICES;
             data->voice = optarg;
             break;
 
@@ -233,7 +233,7 @@ winsay_command_line(WINSAY_DATA *data, int argc, char **argv)
                 if (optarg)
                 {
                     data->voice = "?";
-                    data->mode = WINSAY_GETVOICES;
+                    data->mode = WINSAY_ENUMVOICES;
                 }
                 else
                 {
@@ -475,12 +475,12 @@ winsay_say(WINSAY_DATA *data)
 
     switch (data->mode)
     {
-    case WINSAY_GETFILEFORMATS:
+    case WINSAY_ENUMFILEFORMATS:
         // dump available file formats
         printf("wav      WAVE format\n");
         return EXIT_SUCCESS;
 
-    case WINSAY_GETBITRATES:
+    case WINSAY_ENUMBITRATES:
         // dump available bit rates
         for (size_t i = 0; i < ARRAYSIZE(s_bit_rates); ++i)
         {
@@ -488,7 +488,7 @@ winsay_say(WINSAY_DATA *data)
         }
         return EXIT_SUCCESS;
 
-    case WINSAY_GETVOICES:
+    case WINSAY_ENUMVOICES:
         // dump voices
         for (size_t i = 0; i < voice_tokens.size(); ++i)
         {
@@ -505,11 +505,11 @@ winsay_say(WINSAY_DATA *data)
         }
         return EXIT_SUCCESS;
 
-    case WINSAY_GETCHANNELS:
+    case WINSAY_ENUMCHANNELS:
         printf("1\n2\n");
         return EXIT_SUCCESS;
 
-    case WINSAY_GETQUALITIES:
+    case WINSAY_ENUMQUALITIES:
         printf("No quality available.\n");
         return EXIT_SUCCESS;
 
