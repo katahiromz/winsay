@@ -51,7 +51,7 @@ struct WINSAY_DATA
 // show version info
 void winsay_show_version(void)
 {
-    printf("winsay_main version 0.5 by katahiromz\n");
+    printf("winsay_main version 0.6 by katahiromz\n");
 }
 
 // show help
