@@ -1,4 +1,4 @@
-// winsay.cpp --- Windows says things.
+// winsay_main.cpp --- Windows says things.
 // Copyright (C) 2018 Katayama Hirofumi MZ <katayama.hirofumi.mz@gmail.com>.
 // This file is public domain software.
 
@@ -23,13 +23,6 @@ using std::printf;
 using std::fprintf;
 using std::exit;
 
-// global variables
-std::string g_input_file = "-";
-std::string g_output_file;
-std::string g_voice;
-std::string g_text;
-std::string g_file_format = ".wav";
-
 // return value
 enum RET
 {
@@ -44,19 +37,28 @@ enum WINSAY_MODE
     WINSAY_GETVOICES,
     WINSAY_GETFILEFORMATS
 };
-WINSAY_MODE g_mode = WINSAY_SAY;
+
+struct WINSAY_DATA
+{
+    std::string input_file = "-";
+    std::string output_file;
+    std::string voice;
+    std::string text;
+    std::string file_format = ".wav";
+    WINSAY_MODE mode = WINSAY_SAY;
+};
 
 // show version info
 void winsay_show_version(void)
 {
-    printf("winsay version 0.5 by katahiromz\n");
+    printf("winsay_main version 0.5 by katahiromz\n");
 }
 
 // show help
 void winsay_show_help(void)
 {
-    printf("winsay -- Windows says things\n");
-    printf("Usage: winsay [options] string...\n");
+    printf("winsay_main -- Windows says things\n");
+    printf("Usage: winsay_main [options] string...\n");
     printf("\n");
     printf("Options:\n");
     printf("--help                  Show this help.\n");
@@ -80,7 +82,7 @@ void winsay_show_help(void)
 }
 
 // option info for getopt_long
-static struct option s_winsay_opts[] =
+static struct option winsay_opts[] =
 {
     { "help", no_argument, NULL, 'h' },
     { "version", no_argument, NULL, 0 },
@@ -100,20 +102,23 @@ extern "C"
 }
 
 // parse the command line
-int parse_command_line(int argc, char **argv)
+int
+winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
 {
     int opt, opt_index;
     std::string arg;
 
     opterr = 0;  /* NOTE: opterr == 1 is not compatible to getopt_port */
 
+    data.mode = WINSAY_SAY;
+
     // for each command line options
-    while ((opt = getopt_long(argc, argv, "hv:i:o:", s_winsay_opts, &opt_index)) != -1)
+    while ((opt = getopt_long(argc, argv, "hv:i:o:", winsay_opts, &opt_index)) != -1)
     {
         switch (opt)
         {
         case 0:     // no short option
-            arg = s_winsay_opts[opt_index].name;
+            arg = winsay_opts[opt_index].name;
             if (arg == "version")
             {
                 winsay_show_version();
@@ -121,10 +126,10 @@ int parse_command_line(int argc, char **argv)
             }
             if (arg == "file-format")
             {
-                g_file_format = optarg;
+                data.file_format = optarg;
                 if (strcmp(optarg, "?") == 0)
                 {
-                    g_mode = WINSAY_GETFILEFORMATS;
+                    data.mode = WINSAY_GETFILEFORMATS;
                 }
             }
             if (arg == "quality")
@@ -138,18 +143,18 @@ int parse_command_line(int argc, char **argv)
             break;
         case 'f':
             if (optarg)
-                g_input_file = optarg;
+                data.input_file = optarg;
             else
-                g_input_file = "-";
+                data.input_file = "-";
             break;
         case 'o':
-            g_output_file = optarg;
-            g_mode = WINSAY_OUTPUT;
+            data.output_file = optarg;
+            data.mode = WINSAY_OUTPUT;
             break;
         case 'v':
             if (strcmp(optarg, "?") == 0)
-                g_mode = WINSAY_GETVOICES;
-            g_voice = optarg;
+                data.mode = WINSAY_GETVOICES;
+            data.voice = optarg;
             break;
         case '?':
         default:
@@ -171,8 +176,8 @@ int parse_command_line(int argc, char **argv)
             case 'v':
                 if (optarg)
                 {
-                    g_voice = "?";
-                    g_mode = WINSAY_GETVOICES;
+                    data.voice = "?";
+                    data.mode = WINSAY_GETVOICES;
                 }
                 else
                 {
@@ -192,21 +197,21 @@ int parse_command_line(int argc, char **argv)
 
     for (int i = optind; i < argc; ++i)
     {
-        g_text += ' ';
-        g_text += argv[i];
+        data.text += ' ';
+        data.text += argv[i];
     }
 
-    switch (g_mode)
+    switch (data.mode)
     {
     case WINSAY_SAY:
     case WINSAY_OUTPUT:
-        if (g_text.empty())
+        if (data.text.empty())
         {
             // no text. input now
             FILE *fp;
-            if (g_input_file != "-" && g_input_file.size())
+            if (data.input_file != "-" && data.input_file.size())
             {
-                fp = fopen(g_input_file.c_str(), "rb");
+                fp = fopen(data.input_file.c_str(), "rb");
             }
             else
             {
@@ -217,7 +222,7 @@ int parse_command_line(int argc, char **argv)
                 char buf[256];
                 while (fgets(buf, ARRAYSIZE(buf), fp))
                 {
-                    g_text += buf;
+                    data.text += buf;
                 }
 
                 if (fp != stdin)
@@ -230,7 +235,7 @@ int parse_command_line(int argc, char **argv)
         break;
     }
 
-    mstr_trim(g_text);
+    mstr_trim(data.text);
 
     return RET_SUCCESS;
 }
@@ -241,7 +246,7 @@ struct AUDIO_TOKEN
 };
 
 std::wstring
-GetKeyPathFromTokenID(HKEY& hKeyBase, const WCHAR *pszID)
+winsay_get_reg_path_from_id(HKEY& hKeyBase, const WCHAR *pszID)
 {
     static const WCHAR *pszHKLM = L"HKEY_LOCAL_MACHINE\\";
     static const WCHAR *pszHKCU = L"HKEY_CURRENT_USER\\";
@@ -271,7 +276,8 @@ struct VOICE_TOKEN
     std::wstring language;
 };
 
-VOICE_TOKEN GetVoiceTokenInfo(LPCWSTR pszID, HKEY hSubKey)
+VOICE_TOKEN
+winsay_get_voice_token_info(LPCWSTR pszID, HKEY hSubKey)
 {
     WCHAR szAge[MAX_PATH] = {};
     WCHAR szGender[MAX_PATH] = {};
@@ -326,8 +332,9 @@ VOICE_TOKEN GetVoiceTokenInfo(LPCWSTR pszID, HKEY hSubKey)
     return token;
 }
 
-bool winsay_get_voices(const WCHAR *pszRequest,
-                       std::vector<VOICE_TOKEN>& tokens)
+bool
+winsay_get_voices(const WCHAR *pszRequest,
+                  std::vector<VOICE_TOKEN>& tokens)
 {
     // get voice category
     ISpObjectTokenCategory *pCategory = NULL;
@@ -356,7 +363,7 @@ bool winsay_get_voices(const WCHAR *pszRequest,
 
                     // read voice info from registry
                     HKEY hKeyBase = NULL;
-                    std::wstring key_path = GetKeyPathFromTokenID(hKeyBase, pszID);
+                    std::wstring key_path = winsay_get_reg_path_from_id(hKeyBase, pszID);
                     if (hKeyBase)
                     {
                         //printf("%ls\n", key_path.c_str());
@@ -364,7 +371,7 @@ bool winsay_get_voices(const WCHAR *pszRequest,
                         RegOpenKeyExW(hKeyBase, key_path.c_str(), 0, KEY_READ, &hSubKey);
                         if (hSubKey)
                         {
-                            VOICE_TOKEN token = GetVoiceTokenInfo(pszID, hSubKey);
+                            VOICE_TOKEN token = winsay_get_voice_token_info(pszID, hSubKey);
                             tokens.push_back(token);
 
                             RegCloseKey(hSubKey);
@@ -387,14 +394,14 @@ bool winsay_get_voices(const WCHAR *pszRequest,
 }
 
 // make windows say
-int winsay(void)
+int winsay_main(WINSAY_DATA& data)
 {
     if (0)
     {
-        printf("input-file: %s\n", g_input_file.c_str());
-        printf("output-file: %s\n", g_output_file.c_str());
-        printf("text: %s\n", g_text.c_str());
-        printf("voice: %s\n", g_voice.c_str());
+        printf("input-file: %s\n", data.input_file.c_str());
+        printf("output-file: %s\n", data.output_file.c_str());
+        printf("text: %s\n", data.text.c_str());
+        printf("voice: %s\n", data.voice.c_str());
     }
 
     // get available voices
@@ -405,7 +412,7 @@ int winsay(void)
         return EXIT_FAILURE;
     }
 
-    if (g_file_format == "?")
+    if (data.file_format == "?")
     {
         // dump available file formats
         printf("wav      WAVE format\n");
@@ -417,7 +424,7 @@ int winsay(void)
     ISpObjectToken *pVoiceToken = NULL;
     ISpStream *pStream = NULL;
 
-    if (g_voice == "?")
+    if (data.voice == "?")
     {
         // dump voices
         for (auto& token : voice_tokens)
@@ -435,12 +442,12 @@ int winsay(void)
         return EXIT_SUCCESS;
     }
 
-    if (g_voice.size())
+    if (data.voice.size())
     {
         // select a voice
         for (auto& token : voice_tokens)
         {
-            MAnsiToWide wVoice(CP_ACP, g_voice.c_str());
+            MAnsiToWide wVoice(CP_ACP, data.voice.c_str());
 
             if (lstrcmpiW(wVoice.c_str(), token.name.c_str()) == 0 ||
                 lstrcmpiW(wVoice.c_str(), token.full_name.c_str()) == 0)
@@ -458,30 +465,30 @@ int winsay(void)
         voice.SetVoice(pVoiceToken);
 
     // take care of output file
-    if (g_output_file.size())
+    if (data.output_file.size())
     {
-        if (g_file_format.size() && g_file_format[0] != '.')
+        if (data.file_format.size() && data.file_format[0] != '.')
         {
-            g_file_format = "." + g_file_format;
+            data.file_format = "." + data.file_format;
         }
 
         std::string dotext;
-        if (g_output_file.size() >= 4)
+        if (data.output_file.size() >= 4)
         {
-            dotext = g_output_file.substr(g_output_file.size() - 4, 4);
+            dotext = data.output_file.substr(data.output_file.size() - 4, 4);
         }
         CharLowerA(&dotext[0]);
 
         if (dotext != ".wav")
         {
-            g_output_file += g_file_format;
+            data.output_file += data.file_format;
         }
 
         ::CoCreateInstance(CLSID_SpStream, NULL, CLSCTX_ALL,
                            IID_ISpStream, (void **)&pStream);
         if (pStream)
         {
-            MAnsiToWide wOutputFile(CP_ACP, g_output_file.c_str());
+            MAnsiToWide wOutputFile(CP_ACP, data.output_file.c_str());
 
             WAVEFORMATEX fmt;
             fmt.wFormatTag = WAVE_FORMAT_PCM;
@@ -503,7 +510,7 @@ int winsay(void)
     }
 
     // speak now
-    HRESULT hr = voice.Speak(g_text, false);
+    HRESULT hr = voice.Speak(data.text, false);
     //printf("HRESULT: %08lX\n", hr);
 
     // clean up
@@ -541,9 +548,10 @@ public:
 int main(int argc, char **argv)
 {
     CAutoCoInitialize co_init;
+    WINSAY_DATA data;
 
-    if (int ret = parse_command_line(argc, argv))
+    if (int ret = winsay_command_line(data, argc, argv))
         return EXIT_FAILURE;
 
-    return winsay();
+    return winsay_main(data);
 }
