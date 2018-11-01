@@ -83,11 +83,13 @@ int parse_command_line(int argc, char **argv)
 {
     int opt, opt_index;
     std::string arg;
+    bool any_options = false;
 
     opterr = 0;  /* NOTE: opterr == 1 is not compatible to getopt_port */
 
     while ((opt = getopt_long(argc, argv, "hv:i:o:", opts, &opt_index)) != -1)
     {
+        any_options = true;
         switch (opt)
         {
         case 0:
@@ -170,7 +172,7 @@ int parse_command_line(int argc, char **argv)
         }
     }
 
-    if (g_text.empty())
+    if (!any_options && g_text.empty())
     {
         char buf[256];
         while (fgets(buf, ARRAYSIZE(buf), stdin))
@@ -338,7 +340,7 @@ int winsay(void)
     {
         for (auto& token : tokens)
         {
-            printf("%20ls%ls\n", token.name.c_str(), token.language.c_str());
+            printf("%-20ls%ls\n", token.name.c_str(), token.language.c_str());
         }
         return EXIT_SUCCESS;
     }
