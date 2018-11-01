@@ -68,6 +68,7 @@ void winsay_show_help(void)
     printf("\n");
     printf("--file-format=format    The format of the output file to write.\n");
     printf("--bit-rate=rate         The bit-rate value (Hz).\n");
+    printf("--channels=number       The number of channels.\n");
     printf("--quality=quality       The audio converter quality (ignored).\n");
 }
 
@@ -82,6 +83,7 @@ static struct option winsay_opts[] =
     { "quality", required_argument, NULL, 0 },
     { "file-format", required_argument, NULL, 0 },
     { "bit-rate", required_argument, NULL, 0 },
+    { "channels", required_argument, NULL, 0 },
     { NULL, 0, NULL, 0 },
 };
 
@@ -134,7 +136,7 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
                     break;
                 }
 
-                data.bit_rate = strtol(optarg, NULL, 10);
+                data.bit_rate = strtol(optarg, NULL, 0);
 
                 bool found = false;
                 for (size_t i = 0; i < ARRAYSIZE(s_bit_rates); ++i)
@@ -148,6 +150,22 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
                 if (!found)
                 {
                     fprintf(stderr, "ERROR: invalid bit-rate.\n");
+                    return RET_INVALID_ARGUMENT;
+                }
+            }
+
+            if (arg == "channels")
+            {
+                if (strcmp(optarg, "?") == 0)
+                {
+                    data.mode = WINSAY_GETCHANNELS;
+                    break;
+                }
+
+                data.channels = strtol(optarg, NULL, 0);
+                if (data.channels != 1 && data.channels != 2)
+                {
+                    fprintf(stderr, "ERROR: invalid channels.\n");
                     return RET_INVALID_ARGUMENT;
                 }
             }
@@ -476,6 +494,10 @@ int winsay_main(WINSAY_DATA& data)
         }
         return EXIT_SUCCESS;
 
+    case WINSAY_GETCHANNELS:
+        printf("1\n2\n");
+        return EXIT_SUCCESS;
+
     default:
         break;
     }
@@ -538,7 +560,7 @@ int winsay_main(WINSAY_DATA& data)
 
             WAVEFORMATEX fmt;
             fmt.wFormatTag = WAVE_FORMAT_PCM;
-            fmt.nChannels = 1; 
+            fmt.nChannels = data.channels;
             fmt.wBitsPerSample = 16;
             fmt.nSamplesPerSec = data.bit_rate;
             fmt.nBlockAlign = 2;

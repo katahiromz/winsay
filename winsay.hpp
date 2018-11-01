@@ -17,7 +17,8 @@ enum WINSAY_MODE
     WINSAY_OUTPUT,
     WINSAY_GETVOICES,
     WINSAY_GETFILEFORMATS,
-    WINSAY_GETBITRATES
+    WINSAY_GETBITRATES,
+    WINSAY_GETCHANNELS
 };
 
 struct WINSAY_DATA
@@ -29,6 +30,7 @@ struct WINSAY_DATA
     std::string file_format;
     WINSAY_MODE mode;
     int bit_rate;
+    int channels;
 
     WINSAY_DATA()
     {
@@ -43,6 +45,7 @@ struct WINSAY_DATA
         file_format = ".wav";
         mode = WINSAY_SAY;
         bit_rate = 44100;
+        channels = 2;
     }
 };
 
