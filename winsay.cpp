@@ -11,7 +11,7 @@
     #include <getopt.h> // for GNU getopt_long
 #endif
 
-// TODO: rate, progress, bit-rate,
+// TODO: rate, progress, bit-rate, mp3,
 //       channels, quality, data-format
 
 #include "WinVoice.hpp"
@@ -412,7 +412,7 @@ int winsay(void)
         return EXIT_SUCCESS;
     }
 
-    // the objects
+    // the working objects
     WinVoice voice;
     ISpObjectToken *pVoiceToken = NULL;
     ISpStream *pStream = NULL;
@@ -434,7 +434,8 @@ int winsay(void)
         }
         return EXIT_SUCCESS;
     }
-    else if (g_voice.size())
+
+    if (g_voice.size())
     {
         // select a voice
         for (auto& token : voice_tokens)
@@ -456,6 +457,7 @@ int winsay(void)
     if (pVoiceToken)
         voice.SetVoice(pVoiceToken);
 
+    // take care of output file
     if (g_output_file.size())
     {
         if (g_file_format.size() && g_file_format[0] != '.')
