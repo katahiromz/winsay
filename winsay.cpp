@@ -396,8 +396,9 @@ int winsay(void)
         printf("voice: %s\n", g_voice.c_str());
     }
 
-    std::vector<VOICE_TOKEN> tokens;
-    if (!winsay_get_voices(NULL, tokens))
+    // get available voices
+    std::vector<VOICE_TOKEN> voice_tokens;
+    if (!winsay_get_voices(NULL, voice_tokens))
     {
         fprintf(stderr, "ERROR: unable to enumerate voices.\n");
         return EXIT_FAILURE;
@@ -405,25 +406,37 @@ int winsay(void)
 
     if (g_file_format == "?")
     {
+        // dump available file formats
         printf("wav      WAVE format\n");
         return EXIT_SUCCESS;
     }
 
+    // the objects
     WinVoice voice;
-    ISpObjectToken *pToken = NULL;
+    ISpObjectToken *pVoiceToken = NULL;
     ISpStream *pStream = NULL;
 
     if (g_voice == "?")
     {
-        for (auto& token : tokens)
+        // dump voices
+        for (auto& token : voice_tokens)
         {
-            printf("%-20ls%ls\n", token.name.c_str(), token.language.c_str());
+            WCHAR *endptr;
+            WORD wLangID = (WORD)wcstoul(token.language.c_str(), &endptr, 16);
+            if (*endptr == 0)
+            {
+                LCID lcid = MAKELCID(wLangID, SORT_DEFAULT);
+                char szData[64] = {};
+                GetLocaleInfoA(lcid, LOCALE_SISO639LANGNAME, szData, ARRAYSIZE(szData));
+                printf("%-20ls%s\n", token.name.c_str(), szData);
+            }
         }
         return EXIT_SUCCESS;
     }
     else if (g_voice.size())
     {
-        for (auto& token : tokens)
+        // select a voice
+        for (auto& token : voice_tokens)
         {
             MAnsiToWide wVoice(CP_ACP, g_voice.c_str());
 
@@ -431,15 +444,16 @@ int winsay(void)
                 lstrcmpiW(wVoice.c_str(), token.full_name.c_str()) == 0)
             {
                 ::CoCreateInstance(CLSID_SpObjectToken, NULL, CLSCTX_ALL,
-                                   IID_ISpObjectToken, (void **)&pToken);
-                if (pToken)
-                    pToken->SetId(NULL, token.id.c_str(), FALSE);
+                                   IID_ISpObjectToken, (void **)&pVoiceToken);
+                if (pVoiceToken)
+                    pVoiceToken->SetId(NULL, token.id.c_str(), FALSE);
             }
         }
     }
 
-    if (pToken)
-        voice.SetVoice(pToken);
+    // set the voice
+    if (pVoiceToken)
+        voice.SetVoice(pVoiceToken);
 
     if (g_output_file.size())
     {
@@ -484,19 +498,16 @@ int winsay(void)
                 voice.SpVoice()->SetOutput(pStream, TRUE);
         }
     }
-    else
-    {
-        if (voice.SpVoice())
-            voice.SpVoice()->SetOutput(NULL, TRUE);
-    }
 
+    // speak now
     HRESULT hr = voice.Speak(g_text, false);
     //printf("HRESULT: %08lX\n", hr);
 
-    if (pToken)
+    // clean up
+    if (pVoiceToken)
     {
-        pToken->Release();
-        pToken = NULL;
+        pVoiceToken->Release();
+        pVoiceToken = NULL;
     }
     if (pStream)
     {
