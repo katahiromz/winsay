@@ -1,6 +1,7 @@
 // winsay.hpp --- Windows says things.
 // Copyright (C) 2018 Katayama Hirofumi MZ <katayama.hirofumi.mz@gmail.com>.
 // This file is public domain software.
+///////////////////////////////////////////////////////////////////////////////
 
 #ifndef WINSAY_HPP_
 #define WINSAY_HPP_
@@ -8,6 +9,14 @@
 #ifdef __cplusplus
     #include <string>       // for std::string
 #endif
+#ifndef _INC_WINDOWS
+    #include <windows.h>    // for Windows API
+#endif
+#ifndef _OBJBASE_H_
+    #include <objbase.h>
+#endif
+
+///////////////////////////////////////////////////////////////////////////////
 
 enum WINSAY_MODE
 {
@@ -18,6 +27,9 @@ enum WINSAY_MODE
     WINSAY_GETBITRATES,
     WINSAY_GETCHANNELS
 };
+
+///////////////////////////////////////////////////////////////////////////////
+// WINSAY_DATA
 
 #ifdef __cplusplus
     struct WINSAY_DATA
@@ -55,14 +67,15 @@ enum WINSAY_MODE
     } WINSAY_DATA;
 #endif
 
+///////////////////////////////////////////////////////////////////////////////
+// C++ functions and classes
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 // create WINSAY_DATA structure
 WINSAY_DATA *winsay_create(void);
-// destroy WINSAY_DATA structure
-void winsay_destroy(WINSAY_DATA *data);
 // show version info
 void winsay_show_version(void);
 // show help
@@ -71,16 +84,20 @@ void winsay_show_help(void);
 int winsay_command_line(WINSAY_DATA *data, int argc, char **argv);
 // make windows say
 int winsay_main(WINSAY_DATA *data);
+// destroy WINSAY_DATA structure
+void winsay_destroy(WINSAY_DATA *data);
 
 // automatically calls CoInitialize and CoUninitialize functions
 class winsay_co_init
 {
 public:
     HRESULT m_hr;
+
     winsay_co_init() : m_hr(S_FALSE)
     {
         m_hr = CoInitialize(NULL);
     }
+
     ~winsay_co_init()
     {
         if (SUCCEEDED(m_hr))
@@ -94,5 +111,7 @@ public:
 #ifdef __cplusplus
 } // extern "C"
 #endif
+
+///////////////////////////////////////////////////////////////////////////////
 
 #endif  // ndef WINSAY_HPP_
