@@ -22,7 +22,8 @@ enum WINSAY_MODE
     WINSAY_GETVOICES,
     WINSAY_GETFILEFORMATS,
     WINSAY_GETBITRATES,
-    WINSAY_GETCHANNELS
+    WINSAY_GETCHANNELS,
+    WINSAY_GETQUALITIES
 };
 
 ///////////////////////////////////////////////////////////////////////////////

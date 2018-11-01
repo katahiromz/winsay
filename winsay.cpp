@@ -69,9 +69,18 @@ winsay_show_help(void)
     printf("--voice=?               List all available voices.\n");
     printf("\n");
     printf("--file-format=format    The format of the output file to write.\n");
-    printf("--bit-rate=rate         The bit-rate value (Hz).\n");
+    printf("\n");
+    printf("--file-format=?         List all file formats.\n");
+    printf("\n");
+    printf("--bit-rate=rate         Bit-rate (in Hz).\n");
+    printf("\n");
+    printf("--bit-rate=?            List all available bit-rates (in Hz).\n");
+    printf("\n");
     printf("--channels=number       The number of channels (1 or 2).\n");
-    printf("--quality=quality       The audio converter quality (ignored).\n");
+    printf("\n");
+    printf("--quality=quality       The audio converter quality.\n");
+    printf("\n");
+    printf("--quality=?             List all the audio converter qualities.\n");
 }
 
 // option info for getopt_long
@@ -175,6 +184,11 @@ winsay_command_line(WINSAY_DATA *data, int argc, char **argv)
 
             if (arg == "quality")
             {
+                if (strcmp(optarg, "?") == 0)
+                {
+                    data->mode = WINSAY_GETQUALITIES;
+                    break;
+                }
                 // simply ignored
             }
 
@@ -500,6 +514,10 @@ winsay_say(WINSAY_DATA *data)
 
     case WINSAY_GETCHANNELS:
         printf("1\n2\n");
+        return EXIT_SUCCESS;
+
+    case WINSAY_GETQUALITIES:
+        printf("No quality available.\n");
         return EXIT_SUCCESS;
 
     default:
