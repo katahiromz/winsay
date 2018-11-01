@@ -12,7 +12,7 @@
 #endif
 
 // TODO: output, rate, progress, output-file, bit-rate,
-//       channels, quality
+//       channels, quality, data-format
 
 #include "WinVoice.hpp"
 #include "MString.hpp"
@@ -57,22 +57,23 @@ void show_help(void)
     printf("Usage: sample [options] string...\n");
     printf("\n");
     printf("Options:\n");
-    printf("--help              Show this help.\n");
-    printf("--version           Show version info.\n");
-    printf("string              The text to speak.\n");
+    printf("--help                  Show this help.\n");
+    printf("--version               Show version info.\n");
+    printf("string                  The text to speak.\n");
     printf("\n");
-    printf("-f file             \n");
-    printf("--input-file=file   An input file to be spoken.\n");
-    printf("                    If file is - or neither this parameter nor a message\n");
-    printf("                    is specified, read from standard input.\n");
+    printf("-f file                 \n");
+    printf("--input-file=file       An input file to be spoken.\n");
+    printf("                        If file is - or neither this parameter nor a message\n");
+    printf("                        is specified, read from standard input.\n");
     printf("\n");
-    printf("-o file             \n");
-    printf("--output-file=file  An output file\n");
+    printf("-o file                 \n");
+    printf("--output-file=file      An output file.\n");
     printf("\n");
-    printf("-v voice            \n");
-    printf("--voice=voice       A voice to be used\n");
+    printf("-v voice                \n");
+    printf("--voice=voice           A voice to be used.\n");
+    printf("--voice=?               List all available voices.\n");
     printf("\n");
-    printf("--quality=quality   The audio converter quality (ignored)\n");
+    printf("--quality=quality       The audio converter quality (ignored).\n");
 }
 
 // option info for getopt_long
@@ -99,13 +100,11 @@ int parse_command_line(int argc, char **argv)
 {
     int opt, opt_index;
     std::string arg;
-    bool any_options = false;
 
     opterr = 0;  /* NOTE: opterr == 1 is not compatible to getopt_port */
 
     while ((opt = getopt_long(argc, argv, "hv:i:o:", opts, &opt_index)) != -1)
     {
-        any_options = true;
         switch (opt)
         {
         case 0:
@@ -223,32 +222,8 @@ int parse_command_line(int argc, char **argv)
 
 struct AUDIO_TOKEN
 {
+    std::wstring id;
 };
-
-bool
-winsay_get_audios(std::vector<AUDIO_TOKEN>& tokens)
-{
-    IEnumSpObjectTokens *pTokens = NULL;
-    HRESULT hr = SpEnumTokens(SPCAT_AUDIOOUT, NULL, NULL, &pTokens);
-    if (SUCCEEDED(hr))
-    {
-        ULONG nCount = 0;
-        hr = pTokens->GetCount(&nCount);
-        if (SUCCEEDED(hr))
-        {
-            for (ULONG i = 0; i < nCount; ++i)
-            {
-                ISpObjectToken *pToken = NULL;
-                hr = pTokens->Next(1, &pToken, NULL);
-                if (FAILED(hr))
-                    break;
-                
-            }
-        }
-        pTokens->Release();
-        pTokens = NULL;
-    }
-}
 
 std::wstring
 GetKeyPathFromTokenID(HKEY& hKeyBase, const WCHAR *pszID)
@@ -416,7 +391,7 @@ int winsay(void)
 
     WinVoice voice;
     ISpObjectToken *pToken = NULL;
-    ISpStreamFormat *pStreamFormat = NULL;
+    ISpStream *pStream = NULL;
 
     if (g_voice == "?")
     {
@@ -448,7 +423,29 @@ int winsay(void)
 
     if (g_output_file.size())
     {
-        
+        ::CoCreateInstance(CLSID_SpStream, NULL, CLSCTX_ALL,
+                           IID_ISpStream, (void **)&pStream);
+        if (pStream)
+        {
+            MAnsiToWide wOutputFile(CP_ACP, g_output_file.c_str());
+
+            WAVEFORMATEX fmt;
+            fmt.wFormatTag = WAVE_FORMAT_PCM;
+            fmt.nChannels = 1; 
+            fmt.wBitsPerSample = 16;
+            fmt.nSamplesPerSec = 44100;
+            fmt.nBlockAlign = 2; 
+            fmt.nAvgBytesPerSec = 88200;
+            fmt.cbSize = 0;
+
+            GUID GUID_SPDFID_WaveFormatEx;
+            IIDFromString(L"{C31ADBAE-527F-4ff5-A230-F62BB61FF70C}", &GUID_SPDFID_WaveFormatEx);
+
+            pStream->BindToFile(wOutputFile.c_str(), SPFM_CREATE_ALWAYS,
+                                &GUID_SPDFID_WaveFormatEx, &fmt, 0);
+            if (voice.SpVoice())
+                voice.SpVoice()->SetOutput(pStream, TRUE);
+        }
     }
     else
     {
@@ -463,6 +460,11 @@ int winsay(void)
     {
         pToken->Release();
         pToken = NULL;
+    }
+    if (pStream)
+    {
+        pStream->Release();
+        pStream = NULL;
     }
 
     return EXIT_SUCCESS;
