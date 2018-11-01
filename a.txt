@@ -1,0 +1,4 @@
+Scanning dependencies of target winsay
+[ 50%] Building CXX object CMakeFiles/winsay.dir/winsay.obj
+[100%] Linking CXX executable winsay.exe
+[100%] Built target winsay
