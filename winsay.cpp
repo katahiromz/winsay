@@ -14,6 +14,7 @@
 #include "MString.hpp"
 #include "MTextToText.hpp"
 #include <sphelper.h>
+
 #include "winsay.hpp"
 
 // TODO: rate, progress, bit-rate, mp3,
