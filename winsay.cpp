@@ -530,6 +530,7 @@ public:
     }
 };
 
+#ifndef WINSPY_LIBRARY
 // the main function
 int main(int argc, char **argv)
 {
@@ -541,3 +542,4 @@ int main(int argc, char **argv)
 
     return winsay_main(data);
 }
+#endif  // ndef WINSPY_LIBRARY

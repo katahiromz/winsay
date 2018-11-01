@@ -79,7 +79,13 @@ if (HAVE_GETOPT_LONG AND NOT USE_GETOPT_PORT)
     message(STATUS "We don't use getopt_port")
 
     # executable
-    add_executable(winsay winsay.cpp)
+    add_executable(winsay-bin winsay.cpp)
+    set_target_properties(winsay-bin PROPERTIES OUTPUT_NAME winsay)
+    target_link_libraries(winsay-bin ole32)
+
+    # library
+    add_library(winsay STATIC winsay.cpp)
+    target_compile_definitions(winsay PRIVATE -DWINSAY_LIBRARY)
 else()
     # we use getopt_port
     add_definitions(-DUSE_GETOPT_PORT=1)
@@ -87,10 +93,13 @@ else()
     include_directories(getopt_port)
 
     # executable
-    add_executable(winsay winsay.cpp getopt_port/getopt.c)
-endif()
+    add_executable(winsay-bin winsay.cpp getopt_port/getopt.c)
+    set_target_properties(winsay-bin PROPERTIES OUTPUT_NAME winsay)
+    target_link_libraries(winsay-bin ole32)
 
-# link
-target_link_libraries(winsay ole32)
+    # library
+    add_library(winsay STATIC winsay.cpp getopt_port/getopt.c)
+    target_compile_definitions(winsay PRIVATE -DWINSAY_LIBRARY)
+endif()
 
 ##############################################################################
