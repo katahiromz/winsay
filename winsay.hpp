@@ -6,9 +6,6 @@
 #ifndef WINSAY_HPP_
 #define WINSAY_HPP_
 
-#ifdef __cplusplus
-    #include <string>       // for std::string
-#endif
 #ifndef _INC_WINDOWS
     #include <windows.h>    // for Windows API
 #endif
@@ -32,6 +29,7 @@ enum WINSAY_MODE
 // WINSAY_DATA
 
 #ifdef __cplusplus
+    #include <string>       // for std::string
     struct WINSAY_DATA
     {
         std::string input_file;
