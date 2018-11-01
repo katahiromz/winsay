@@ -39,6 +39,7 @@ enum RET
 enum WINSAY_MODE
 {
     WINSAY_SAY,
+    WINSAY_OUTPUT,
     WINSAY_GETVOICES,
 };
 WINSAY_MODE g_mode = WINSAY_SAY;
@@ -131,6 +132,7 @@ int parse_command_line(int argc, char **argv)
             break;
         case 'o':
             g_output_file = optarg;
+            g_mode = WINSAY_OUTPUT;
             break;
         case 'v':
             if (strcmp(optarg, "?") == 0)
@@ -181,34 +183,92 @@ int parse_command_line(int argc, char **argv)
         g_text += argv[i];
     }
 
-    if (g_mode == WINSAY_SAY && g_text.empty())
+    switch (g_mode)
     {
-        FILE *fp;
-        if (g_input_file != "-" && g_input_file.size())
+    case WINSAY_SAY:
+    case WINSAY_OUTPUT:
+        if (g_text.empty())
         {
-            fp = fopen(g_input_file.c_str(), "rb");
-        }
-        else
-        {
-            fp = stdin;
-        }
-
-        if (fp)
-        {
-            char buf[256];
-            while (fgets(buf, ARRAYSIZE(buf), fp))
+            FILE *fp;
+            if (g_input_file != "-" && g_input_file.size())
             {
-                g_text += buf;
+                fp = fopen(g_input_file.c_str(), "rb");
+            }
+            else
+            {
+                fp = stdin;
             }
 
-            if (fp != stdin)
-                fclose(fp);
+            if (fp)
+            {
+                char buf[256];
+                while (fgets(buf, ARRAYSIZE(buf), fp))
+                {
+                    g_text += buf;
+                }
+
+                if (fp != stdin)
+                    fclose(fp);
+            }
         }
+        break;
+    case WINSAY_GETVOICES:
+        break;
     }
 
     mstr_trim(g_text);
 
     return RET_SUCCESS;
+}
+
+struct AUDIO_TOKEN
+{
+};
+
+bool
+winsay_get_audios(std::vector<AUDIO_TOKEN>& tokens)
+{
+    IEnumSpObjectTokens *pTokens = NULL;
+    HRESULT hr = SpEnumTokens(SPCAT_AUDIOOUT, NULL, NULL, &pTokens);
+    if (SUCCEEDED(hr))
+    {
+        ULONG nCount = 0;
+        hr = pTokens->GetCount(&nCount);
+        if (SUCCEEDED(hr))
+        {
+            for (ULONG i = 0; i < nCount; ++i)
+            {
+                ISpObjectToken *pToken = NULL;
+                hr = pTokens->Next(1, &pToken, NULL);
+                if (FAILED(hr))
+                    break;
+                
+            }
+        }
+        pTokens->Release();
+        pTokens = NULL;
+    }
+}
+
+std::wstring
+GetKeyPathFromTokenID(HKEY& hKeyBase, const WCHAR *pszID)
+{
+    static const WCHAR *pszHKLM = L"HKEY_LOCAL_MACHINE\\";
+    static const WCHAR *pszHKCU = L"HKEY_CURRENT_USER\\";
+    std::wstring key_path;
+    hKeyBase = NULL;
+    if (memcmp(pszID, pszHKLM, lstrlenW(pszHKLM)) == 0)
+    {
+        hKeyBase = HKEY_LOCAL_MACHINE;
+        key_path = &pszID[lstrlenW(pszHKLM)];
+    }
+    else if (memcmp(pszID, pszHKLM, lstrlenW(pszHKCU)) == 0)
+    {
+        hKeyBase = HKEY_CURRENT_USER;
+        key_path = &pszID[lstrlenW(pszHKCU)];
+    }
+    key_path += L"\\Attributes";
+    return key_path;
 }
 
 struct VOICE_TOKEN
@@ -221,103 +281,100 @@ struct VOICE_TOKEN
     std::wstring language;
 };
 
+VOICE_TOKEN GetVoiceTokenInfo(LPCWSTR pszID, HKEY hSubKey)
+{
+    WCHAR szAge[MAX_PATH] = {};
+    WCHAR szGender[MAX_PATH] = {};
+    WCHAR szLanguage[MAX_PATH] = {};
+    WCHAR szName[MAX_PATH] = {};
+    DWORD cbValue;
+
+    cbValue = sizeof(szAge);
+    RegQueryValueExW(hSubKey, L"Age", NULL, NULL, LPBYTE(szAge), &cbValue);
+    cbValue = sizeof(szGender);
+    RegQueryValueExW(hSubKey, L"Gender", NULL, NULL, LPBYTE(szGender), &cbValue);
+    cbValue = sizeof(szLanguage);
+    RegQueryValueExW(hSubKey, L"Language", NULL, NULL, LPBYTE(szLanguage), &cbValue);
+    cbValue = sizeof(szName);
+    RegQueryValueExW(hSubKey, L"Name", NULL, NULL, LPBYTE(szName), &cbValue);
+
+    std::wstring name = szName;
+
+    static const WCHAR szMicrosoftSp[] = L"Microsoft ";
+    INT cchMicrosoftSp = lstrlenW(szMicrosoftSp);
+    if (name.size() > cchMicrosoftSp &&
+        name.substr(0, cchMicrosoftSp) == szMicrosoftSp)
+    {
+        name.erase(0, cchMicrosoftSp);
+    }
+
+    static const WCHAR szSpDesktop[] = L" Desktop";
+    INT cchSpDesktop = lstrlenW(szSpDesktop);
+    if (name.size() > cchSpDesktop &&
+        name.substr(name.size() - cchSpDesktop, cchSpDesktop) == szSpDesktop)
+    {
+        name = name.substr(0, name.size() - cchSpDesktop);
+    }
+
+    if (0)
+    {
+        printf("age: %ls\n", szAge);
+        printf("gender: %ls\n", szGender);
+        printf("language: %ls\n", szLanguage);
+        printf("name: %ls\n", name.c_str());
+    }
+
+    VOICE_TOKEN token =
+    {
+        pszID,
+        name,
+        szName,
+        szAge,
+        szGender,
+        szLanguage
+    };
+    return token;
+}
+
 bool
 winsay_get_voices(const WCHAR *pszRequest, std::vector<VOICE_TOKEN>& tokens)
 {
+    // get voice category
     ISpObjectTokenCategory *pCategory = NULL;
     HRESULT hr = SpGetCategoryFromId(SPCAT_VOICES, &pCategory);
     if (SUCCEEDED(hr) && pCategory)
     {
+        // get object tokens
         IEnumSpObjectTokens *pTokens = NULL;
         hr = pCategory->EnumTokens(pszRequest, NULL, &pTokens);
         if (SUCCEEDED(hr) && pTokens)
         {
-            ISpObjectToken *pToken = NULL;
             for (;;)
             {
-                pToken = NULL;
+                // get token
+                ISpObjectToken *pToken = NULL;
                 hr = pTokens->Next(1, &pToken, NULL);
                 if (FAILED(hr) || !pToken)
                     break;
 
+                // get token id
                 LPWSTR pszID = NULL;
                 pToken->GetId(&pszID);
                 if (pszID)
                 {
                     //printf("pszID: %ls\n", pszID);
-                    static const WCHAR *pszHKLM = L"HKEY_LOCAL_MACHINE\\";
-                    static const WCHAR *pszHKCU = L"HKEY_CURRENT_USER\\";
-                    std::wstring key_path;
-                    HKEY hKey = NULL;
-                    if (memcmp(pszID, pszHKLM, lstrlenW(pszHKLM)) == 0)
-                    {
-                        hKey = HKEY_LOCAL_MACHINE;
-                        key_path = &pszID[lstrlenW(pszHKLM)];
-                    }
-                    else if (memcmp(pszID, pszHKLM, lstrlenW(pszHKCU)) == 0)
-                    {
-                        hKey = HKEY_CURRENT_USER;
-                        key_path = &pszID[lstrlenW(pszHKCU)];
-                    }
-                    if (hKey)
-                    {
-                        key_path += L"\\Attributes";
-                        //printf("%ls\n", key_path.c_str());
 
+                    // read voice info from registry
+                    HKEY hKeyBase = NULL;
+                    std::wstring key_path = GetKeyPathFromTokenID(hKeyBase, pszID);
+                    if (hKeyBase)
+                    {
+                        //printf("%ls\n", key_path.c_str());
                         HKEY hSubKey = NULL;
-                        RegOpenKeyExW(hKey, key_path.c_str(), 0, KEY_READ, &hSubKey);
+                        RegOpenKeyExW(hKeyBase, key_path.c_str(), 0, KEY_READ, &hSubKey);
                         if (hSubKey)
                         {
-                            WCHAR szAge[MAX_PATH] = {};
-                            WCHAR szGender[MAX_PATH] = {};
-                            WCHAR szLanguage[MAX_PATH] = {};
-                            WCHAR szName[MAX_PATH] = {};
-                            DWORD cbValue;
-
-                            cbValue = sizeof(szAge);
-                            RegQueryValueExW(hSubKey, L"Age", NULL, NULL, LPBYTE(szAge), &cbValue);
-                            cbValue = sizeof(szGender);
-                            RegQueryValueExW(hSubKey, L"Gender", NULL, NULL, LPBYTE(szGender), &cbValue);
-                            cbValue = sizeof(szLanguage);
-                            RegQueryValueExW(hSubKey, L"Language", NULL, NULL, LPBYTE(szLanguage), &cbValue);
-                            cbValue = sizeof(szName);
-                            RegQueryValueExW(hSubKey, L"Name", NULL, NULL, LPBYTE(szName), &cbValue);
-
-                            std::wstring name = szName;
-
-                            static const WCHAR szMicrosoftSp[] = L"Microsoft ";
-                            INT cchMicrosoftSp = lstrlenW(szMicrosoftSp);
-                            if (name.size() > cchMicrosoftSp &&
-                                name.substr(0, cchMicrosoftSp) == szMicrosoftSp)
-                            {
-                                name.erase(0, cchMicrosoftSp);
-                            }
-
-                            static const WCHAR szSpDesktop[] = L" Desktop";
-                            INT cchSpDesktop = lstrlenW(szSpDesktop);
-                            if (name.size() > cchSpDesktop &&
-                                name.substr(name.size() - cchSpDesktop, cchSpDesktop) == szSpDesktop)
-                            {
-                                name = name.substr(0, name.size() - cchSpDesktop);
-                            }
-
-                            if (0)
-                            {
-                                printf("age: %ls\n", szAge);
-                                printf("gender: %ls\n", szGender);
-                                printf("language: %ls\n", szLanguage);
-                                printf("name: %ls\n", name.c_str());
-                            }
-
-                            VOICE_TOKEN token =
-                            {
-                                pszID,
-                                name,
-                                szName,
-                                szAge,
-                                szGender,
-                                szLanguage
-                            };
+                            VOICE_TOKEN token = GetVoiceTokenInfo(pszID, hSubKey);
                             tokens.push_back(token);
 
                             RegCloseKey(hSubKey);
@@ -326,7 +383,6 @@ winsay_get_voices(const WCHAR *pszRequest, std::vector<VOICE_TOKEN>& tokens)
                     CoTaskMemFree(pszID);
                     pszID = NULL;
                 }
-
                 pToken->Release();
                 pToken = NULL;
             }
@@ -360,6 +416,7 @@ int winsay(void)
 
     WinVoice voice;
     ISpObjectToken *pToken = NULL;
+    ISpStreamFormat *pStreamFormat = NULL;
 
     if (g_voice == "?")
     {
@@ -388,6 +445,16 @@ int winsay(void)
 
     if (pToken)
         voice.SetVoice(pToken);
+
+    if (g_output_file.size())
+    {
+        
+    }
+    else
+    {
+        if (voice.SpVoice())
+            voice.SpVoice()->SetOutput(NULL, TRUE);
+    }
 
     HRESULT hr = voice.Speak(g_text, false);
     //printf("HRESULT: %08lX\n", hr);
