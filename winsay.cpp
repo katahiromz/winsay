@@ -24,7 +24,7 @@ using std::fprintf;
 using std::exit;
 
 // global variables
-std::string g_input_file;
+std::string g_input_file = "-";
 std::string g_output_file;
 std::string g_voice;
 std::string g_text;
@@ -36,6 +36,14 @@ enum RET
     RET_INVALID_ARGUMENT
 };
 
+enum WINSAY_MODE
+{
+    WINSAY_NOTHING,
+    WINSAY_SAY,
+    WINSAY_GETVOICES,
+};
+WINSAY_MODE g_mode = WINSAY_SAY;
+
 // show version info
 void show_version(void)
 {
@@ -45,19 +53,25 @@ void show_version(void)
 // show help
 void show_help(void)
 {
-    printf("winsay --- Windows says things\n");
+    printf("winsay -- Windows says things\n");
     printf("Usage: sample [options] string...\n");
     printf("\n");
     printf("Options:\n");
-    printf("--help              Show this help\n");
-    printf("--version           Show version info\n");
-    printf("string              The text to speak\n");
-    printf("-f file\n");
-    printf("--input-file=file   An input file\n");
-    printf("-o file\n");
+    printf("--help              Show this help.\n");
+    printf("--version           Show version info.\n");
+    printf("string              The text to speak.\n");
+    printf("\n");
+    printf("-f file             \n");
+    printf("--input-file=file   An input file to be spoken.\n");
+    printf("                    If file is - or neither this parameter nor a message\n");
+    printf("                    is specified, read from standard input.\n");
+    printf("\n");
+    printf("-o file             \n");
     printf("--output-file=file  An output file\n");
-    printf("-v voice\n");
+    printf("\n");
+    printf("-v voice            \n");
     printf("--voice=voice       A voice to be used\n");
+    printf("\n");
     printf("--quality=quality   The audio converter quality (ignored)\n");
 }
 
@@ -66,7 +80,7 @@ struct option opts[] =
 {
     { "help", no_argument, NULL, 'h' },
     { "version", no_argument, NULL, 0 },
-    { "input-file", required_argument, NULL, 'f' },
+    { "input-file", optional_argument, NULL, 'f' },
     { "output-file", required_argument, NULL, 'o' },
     { "voice", required_argument, NULL, 'v' },
     { "quality", required_argument, NULL, 0 },
@@ -111,12 +125,17 @@ int parse_command_line(int argc, char **argv)
             exit(EXIT_SUCCESS);
             break;
         case 'f':
-            g_input_file = optarg;
+            if (optarg)
+                g_input_file = optarg;
+            else
+                g_input_file = "-";
             break;
         case 'o':
             g_output_file = optarg;
             break;
         case 'v':
+            if (strcmp(optarg, "?") == 0)
+                g_mode = WINSAY_GETVOICES;
             g_voice = optarg;
             break;
         case '?':
@@ -139,6 +158,7 @@ int parse_command_line(int argc, char **argv)
                 if (optarg)
                 {
                     g_voice = "?";
+                    g_mode = WINSAY_GETVOICES;
                 }
                 else
                 {
@@ -162,28 +182,31 @@ int parse_command_line(int argc, char **argv)
         g_text += argv[i];
     }
 
-    if (g_text.empty())
+    if (g_mode == WINSAY_SAY)
     {
-        if (g_input_file.size())
+        if (g_text.empty())
         {
-            if (FILE *fp = fopen(g_input_file.c_str(), "rb"))
+            if (g_input_file != "-" && g_input_file.size())
             {
-                char buf[256];
-                while (fgets(buf, ARRAYSIZE(buf), fp))
+                if (FILE *fp = fopen(g_input_file.c_str(), "rb"))
                 {
-                    g_text += buf;
+                    char buf[256];
+                    while (fgets(buf, ARRAYSIZE(buf), fp))
+                    {
+                        g_text += buf;
+                    }
+                    fclose(fp);
                 }
-                fclose(fp);
             }
         }
-    }
 
-    if (!any_options && g_text.empty())
-    {
-        char buf[256];
-        while (fgets(buf, ARRAYSIZE(buf), stdin))
+        if (g_text.empty() || g_input_file == "-" || g_input_file.empty())
         {
-            g_text += buf;
+            char buf[256];
+            while (fgets(buf, ARRAYSIZE(buf), stdin))
+            {
+                g_text += buf;
+            }
         }
     }
 
