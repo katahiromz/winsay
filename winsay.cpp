@@ -38,7 +38,6 @@ enum RET
 
 enum WINSAY_MODE
 {
-    WINSAY_NOTHING,
     WINSAY_SAY,
     WINSAY_GETVOICES,
 };
