@@ -3,7 +3,6 @@
 // This file is public domain software.
 
 #include <cstdio>       // standard C I/O
-#include <string>       // for std::string
 #include <vector>       // for std::vector
 #ifdef USE_GETOPT_PORT
     #include "getopt.h" // for portable getopt_long
@@ -11,13 +10,14 @@
     #include <getopt.h> // for GNU getopt_long
 #endif
 
-// TODO: rate, progress, bit-rate, mp3,
-//       channels, quality, data-format
-
 #include "WinVoice.hpp"
 #include "MString.hpp"
 #include "MTextToText.hpp"
 #include <sphelper.h>
+#include "winsay.hpp"
+
+// TODO: rate, progress, bit-rate, mp3,
+//       channels, quality, data-format
 
 using std::printf;
 using std::fprintf;
@@ -28,24 +28,6 @@ enum RET
 {
     RET_SUCCESS = 0,
     RET_INVALID_ARGUMENT
-};
-
-enum WINSAY_MODE
-{
-    WINSAY_SAY,
-    WINSAY_OUTPUT,
-    WINSAY_GETVOICES,
-    WINSAY_GETFILEFORMATS
-};
-
-struct WINSAY_DATA
-{
-    std::string input_file = "-";
-    std::string output_file;
-    std::string voice;
-    std::string text;
-    std::string file_format = ".wav";
-    WINSAY_MODE mode = WINSAY_SAY;
 };
 
 // show version info
@@ -102,8 +84,7 @@ extern "C"
 }
 
 // parse the command line
-int
-winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
+int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
 {
     int opt, opt_index;
     std::string arg;
@@ -245,7 +226,7 @@ struct AUDIO_TOKEN
     std::wstring id;
 };
 
-std::wstring
+static std::wstring
 winsay_get_reg_path_from_id(HKEY& hKeyBase, const WCHAR *pszID)
 {
     static const WCHAR *pszHKLM = L"HKEY_LOCAL_MACHINE\\";
@@ -276,7 +257,7 @@ struct VOICE_TOKEN
     std::wstring language;
 };
 
-VOICE_TOKEN
+static VOICE_TOKEN
 winsay_get_voice_token_info(LPCWSTR pszID, HKEY hSubKey)
 {
     WCHAR szAge[MAX_PATH] = {};
@@ -332,7 +313,7 @@ winsay_get_voice_token_info(LPCWSTR pszID, HKEY hSubKey)
     return token;
 }
 
-bool
+static bool
 winsay_get_voices(const WCHAR *pszRequest,
                   std::vector<VOICE_TOKEN>& tokens)
 {
@@ -535,15 +516,15 @@ int winsay_main(WINSAY_DATA& data)
 class CAutoCoInitialize
 {
 public:
-    HRESULT m_hResult;
-    CAutoCoInitialize() : m_hResult(S_FALSE)
+    HRESULT m_hr;
+    CAutoCoInitialize() : m_hr(S_FALSE)
     {
-        m_hResult = CoInitialize(NULL);
+        m_hr = CoInitialize(NULL);
     }
     ~CAutoCoInitialize()
     {
         CoUninitialize();
-        m_hResult = S_FALSE;
+        m_hr = S_FALSE;
     }
 };
 
