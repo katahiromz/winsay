@@ -58,6 +58,7 @@ void show_help(void)
     printf("--output-file=file  An output file\n");
     printf("-v voice\n");
     printf("--voice=voice       A voice to be used\n");
+    printf("--quality=quality   The audio converter quality (ignored)\n");
 }
 
 // option info for getopt_long
@@ -68,6 +69,7 @@ struct option opts[] =
     { "input-file", required_argument, NULL, 'f' },
     { "output-file", required_argument, NULL, 'o' },
     { "voice", required_argument, NULL, 'v' },
+    { "quality", required_argument, NULL, 0 },
     { NULL, 0, NULL, 0 },
 };
 
@@ -98,6 +100,10 @@ int parse_command_line(int argc, char **argv)
             {
                 show_version();
                 exit(EXIT_SUCCESS);
+            }
+            if (arg == "quality")
+            {
+                // simply ignored
             }
             break;
         case 'h':
