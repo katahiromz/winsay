@@ -49,7 +49,7 @@ WINSAY_MODE g_mode = WINSAY_SAY;
 // show version info
 void show_version(void)
 {
-    printf("winsay version 0.4\n");
+    printf("winsay version 0.5 by katahiromz\n");
 }
 
 // show help
@@ -107,11 +107,12 @@ int parse_command_line(int argc, char **argv)
 
     opterr = 0;  /* NOTE: opterr == 1 is not compatible to getopt_port */
 
+    // for each command line options
     while ((opt = getopt_long(argc, argv, "hv:i:o:", opts, &opt_index)) != -1)
     {
         switch (opt)
         {
-        case 0:
+        case 0:     // no short option
             arg = opts[opt_index].name;
             if (arg == "version")
             {
@@ -152,6 +153,7 @@ int parse_command_line(int argc, char **argv)
             break;
         case '?':
         default:
+            // error
             switch (optopt)
             {
             case 'f':
@@ -200,6 +202,7 @@ int parse_command_line(int argc, char **argv)
     case WINSAY_OUTPUT:
         if (g_text.empty())
         {
+            // no text. input now
             FILE *fp;
             if (g_input_file != "-" && g_input_file.size())
             {
@@ -209,7 +212,6 @@ int parse_command_line(int argc, char **argv)
             {
                 fp = stdin;
             }
-
             if (fp)
             {
                 char buf[256];
@@ -224,7 +226,6 @@ int parse_command_line(int argc, char **argv)
         }
         break;
     case WINSAY_GETVOICES:
-        break;
     case WINSAY_GETFILEFORMATS:
         break;
     }
