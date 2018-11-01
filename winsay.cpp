@@ -19,21 +19,14 @@
 
 // TODO: rate, progress, mp3, data-format
 
-// bit-rates in Hz
-static const INT s_bit_rates[] =
-{
-    8000, 11025, 22050, 44100
-};
-
 using std::printf;
 using std::fprintf;
 using std::exit;
 
-// return value
-enum RET
+// bit-rates in Hz
+static const INT s_bit_rates[] =
 {
-    RET_SUCCESS = 0,
-    RET_INVALID_ARGUMENT
+    8000, 11025, 22050, 44100
 };
 
 // show version info
@@ -162,7 +155,7 @@ winsay_command_line(WINSAY_DATA *data, int argc, char **argv)
                 if (!found)
                 {
                     fprintf(stderr, "ERROR: invalid bit-rate.\n");
-                    return RET_INVALID_ARGUMENT;
+                    return EXIT_FAILURE;
                 }
             }
 
@@ -178,7 +171,7 @@ winsay_command_line(WINSAY_DATA *data, int argc, char **argv)
                 if (data->channels != 1 && data->channels != 2)
                 {
                     fprintf(stderr, "ERROR: invalid channels.\n");
-                    return RET_INVALID_ARGUMENT;
+                    return EXIT_FAILURE;
                 }
             }
 
@@ -256,7 +249,7 @@ winsay_command_line(WINSAY_DATA *data, int argc, char **argv)
                 fprintf(stderr, "ERROR: invalid option '-%c'.\n", optopt);
                 break;
             }
-            return RET_INVALID_ARGUMENT;
+            return EXIT_FAILURE;
         }
     }
 
@@ -303,7 +296,7 @@ winsay_command_line(WINSAY_DATA *data, int argc, char **argv)
 
     mstr_trim(data->text);
 
-    return RET_SUCCESS;
+    return EXIT_SUCCESS;
 }
 
 struct AUDIO_TOKEN
