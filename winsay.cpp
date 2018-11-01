@@ -40,7 +40,7 @@ enum RET
 extern "C" void
 winsay_show_version(void)
 {
-    printf("winsay version 0.8 by katahiromz\n");
+    printf("winsay version %u.%u by katahiromz\n", WINSAY_HPP_ / 10, WINSAY_HPP_ % 10);
 }
 
 // show help
@@ -65,6 +65,7 @@ winsay_show_help(void)
     printf("\n");
     printf("-v voice                \n");
     printf("--voice=voice           A voice to be used.\n");
+    printf("\n");
     printf("--voice=?               List all available voices.\n");
     printf("\n");
     printf("--file-format=format    The format of the output file to write.\n");

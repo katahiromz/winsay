@@ -4,7 +4,7 @@
 ///////////////////////////////////////////////////////////////////////////////
 
 #ifndef WINSAY_HPP_
-#define WINSAY_HPP_
+#define WINSAY_HPP_         8   // 0.8
 
 #ifndef _INC_WINDOWS
     #include <windows.h>    // for Windows API
