@@ -47,13 +47,13 @@ enum WINSAY_MODE
 WINSAY_MODE g_mode = WINSAY_SAY;
 
 // show version info
-void show_version(void)
+void winsay_show_version(void)
 {
     printf("winsay version 0.5 by katahiromz\n");
 }
 
 // show help
-void show_help(void)
+void winsay_show_help(void)
 {
     printf("winsay -- Windows says things\n");
     printf("Usage: sample [options] string...\n");
@@ -80,7 +80,7 @@ void show_help(void)
 }
 
 // option info for getopt_long
-struct option opts[] =
+static struct option s_winsay_opts[] =
 {
     { "help", no_argument, NULL, 'h' },
     { "version", no_argument, NULL, 0 },
@@ -108,15 +108,15 @@ int parse_command_line(int argc, char **argv)
     opterr = 0;  /* NOTE: opterr == 1 is not compatible to getopt_port */
 
     // for each command line options
-    while ((opt = getopt_long(argc, argv, "hv:i:o:", opts, &opt_index)) != -1)
+    while ((opt = getopt_long(argc, argv, "hv:i:o:", s_winsay_opts, &opt_index)) != -1)
     {
         switch (opt)
         {
         case 0:     // no short option
-            arg = opts[opt_index].name;
+            arg = s_winsay_opts[opt_index].name;
             if (arg == "version")
             {
-                show_version();
+                winsay_show_version();
                 exit(EXIT_SUCCESS);
             }
             if (arg == "file-format")
@@ -133,7 +133,7 @@ int parse_command_line(int argc, char **argv)
             }
             break;
         case 'h':
-            show_help();
+            winsay_show_help();
             exit(EXIT_SUCCESS);
             break;
         case 'f':
@@ -326,8 +326,8 @@ VOICE_TOKEN GetVoiceTokenInfo(LPCWSTR pszID, HKEY hSubKey)
     return token;
 }
 
-bool
-winsay_get_voices(const WCHAR *pszRequest, std::vector<VOICE_TOKEN>& tokens)
+bool winsay_get_voices(const WCHAR *pszRequest,
+                       std::vector<VOICE_TOKEN>& tokens)
 {
     // get voice category
     ISpObjectTokenCategory *pCategory = NULL;
