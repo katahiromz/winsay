@@ -56,7 +56,7 @@ void winsay_show_version(void)
 void winsay_show_help(void)
 {
     printf("winsay -- Windows says things\n");
-    printf("Usage: sample [options] string...\n");
+    printf("Usage: winsay [options] string...\n");
     printf("\n");
     printf("Options:\n");
     printf("--help                  Show this help.\n");
