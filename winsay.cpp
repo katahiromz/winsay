@@ -37,13 +37,15 @@ enum RET
 };
 
 // show version info
-void winsay_show_version(void)
+extern "C" void
+winsay_show_version(void)
 {
     printf("winsay version 0.7 by katahiromz\n");
 }
 
 // show help
-void winsay_show_help(void)
+extern "C" void
+winsay_show_help(void)
 {
     printf("winsay -- Windows says things\n");
     printf("Usage: winsay [options] string...\n");
@@ -94,14 +96,15 @@ extern "C"
 }
 
 // parse the command line
-int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
+extern "C" int
+winsay_command_line(WINSAY_DATA *data, int argc, char **argv)
 {
     int opt, opt_index;
     std::string arg;
 
     opterr = 0;  /* NOTE: opterr == 1 is not compatible to getopt_port */
 
-    data.mode = WINSAY_SAY;
+    data->mode = WINSAY_SAY;
 
     // for each command line option
     while ((opt = getopt_long(argc, argv, "hv:i:o:", winsay_opts, &opt_index)) != -1)
@@ -119,10 +122,10 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
 
             if (arg == "file-format")
             {
-                data.file_format = optarg;
-                if (data.file_format == "?")
+                data->file_format = optarg;
+                if (data->file_format == "?")
                 {
-                    data.mode = WINSAY_GETFILEFORMATS;
+                    data->mode = WINSAY_GETFILEFORMATS;
                 }
             }
 
@@ -130,17 +133,17 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
             {
                 if (strcmp(optarg, "?") == 0)
                 {
-                    data.mode = WINSAY_GETBITRATES;
-                    data.bit_rate = 0;
+                    data->mode = WINSAY_GETBITRATES;
+                    data->bit_rate = 0;
                     break;
                 }
 
-                data.bit_rate = strtol(optarg, NULL, 0);
+                data->bit_rate = strtol(optarg, NULL, 0);
 
                 bool found = false;
                 for (size_t i = 0; i < ARRAYSIZE(s_bit_rates); ++i)
                 {
-                    if (s_bit_rates[i] == data.bit_rate)
+                    if (s_bit_rates[i] == data->bit_rate)
                     {
                         found = true;
                     }
@@ -157,12 +160,12 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
             {
                 if (strcmp(optarg, "?") == 0)
                 {
-                    data.mode = WINSAY_GETCHANNELS;
+                    data->mode = WINSAY_GETCHANNELS;
                     break;
                 }
 
-                data.channels = strtol(optarg, NULL, 0);
-                if (data.channels != 1 && data.channels != 2)
+                data->channels = strtol(optarg, NULL, 0);
+                if (data->channels != 1 && data->channels != 2)
                 {
                     fprintf(stderr, "ERROR: invalid channels.\n");
                     return RET_INVALID_ARGUMENT;
@@ -183,20 +186,20 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
 
         case 'f':
             if (optarg)
-                data.input_file = optarg;
+                data->input_file = optarg;
             else
-                data.input_file = "-";
+                data->input_file = "-";
             break;
 
         case 'o':
-            data.output_file = optarg;
-            data.mode = WINSAY_OUTPUT;
+            data->output_file = optarg;
+            data->mode = WINSAY_OUTPUT;
             break;
 
         case 'v':
             if (strcmp(optarg, "?") == 0)
-                data.mode = WINSAY_GETVOICES;
-            data.voice = optarg;
+                data->mode = WINSAY_GETVOICES;
+            data->voice = optarg;
             break;
 
         case '?':
@@ -221,8 +224,8 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
             case 'v':
                 if (optarg)
                 {
-                    data.voice = "?";
-                    data.mode = WINSAY_GETVOICES;
+                    data->voice = "?";
+                    data->mode = WINSAY_GETVOICES;
                 }
                 else
                 {
@@ -244,22 +247,22 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
 
     for (int i = optind; i < argc; ++i)
     {
-        data.text += ' ';
-        data.text += argv[i];
+        data->text += ' ';
+        data->text += argv[i];
     }
 
-    switch (data.mode)
+    switch (data->mode)
     {
     case WINSAY_SAY:
     case WINSAY_OUTPUT:
         // need input
-        if (data.text.empty())
+        if (data->text.empty())
         {
             // no text. input now
             FILE *fp;
-            if (data.input_file != "-" && data.input_file.size())
+            if (data->input_file != "-" && data->input_file.size())
             {
-                fp = fopen(data.input_file.c_str(), "rb");
+                fp = fopen(data->input_file.c_str(), "rb");
             }
             else
             {
@@ -270,7 +273,7 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
                 char buf[256];
                 while (fgets(buf, ARRAYSIZE(buf), fp))
                 {
-                    data.text += buf;
+                    data->text += buf;
                 }
 
                 if (fp != stdin)
@@ -283,7 +286,7 @@ int winsay_command_line(WINSAY_DATA& data, int argc, char **argv)
         break;
     }
 
-    mstr_trim(data.text);
+    mstr_trim(data->text);
 
     return RET_SUCCESS;
 }
@@ -443,14 +446,15 @@ winsay_get_voices(const WCHAR *pszRequest,
 }
 
 // make windows say
-int winsay_main(WINSAY_DATA& data)
+extern "C" int
+winsay_main(WINSAY_DATA *data)
 {
     if (0)
     {
-        printf("input-file: %s\n", data.input_file.c_str());
-        printf("output-file: %s\n", data.output_file.c_str());
-        printf("text: %s\n", data.text.c_str());
-        printf("voice: %s\n", data.voice.c_str());
+        printf("input-file: %s\n", data->input_file.c_str());
+        printf("output-file: %s\n", data->output_file.c_str());
+        printf("text: %s\n", data->text.c_str());
+        printf("voice: %s\n", data->voice.c_str());
     }
 
     // get available voices
@@ -461,7 +465,7 @@ int winsay_main(WINSAY_DATA& data)
         return EXIT_FAILURE;
     }
 
-    switch (data.mode)
+    switch (data->mode)
     {
     case WINSAY_GETFILEFORMATS:
         // dump available file formats
@@ -506,13 +510,13 @@ int winsay_main(WINSAY_DATA& data)
     ISpObjectToken *pVoiceToken = NULL;
     ISpStream *pStream = NULL;
 
-    if (data.voice.size())
+    if (data->voice.size())
     {
         // select a voice
         for (size_t i = 0; i < voice_tokens.size(); ++i)
         {
             VOICE_TOKEN& token = voice_tokens[i];
-            MAnsiToWide wVoice(CP_ACP, data.voice.c_str());
+            MAnsiToWide wVoice(CP_ACP, data->voice.c_str());
 
             if (lstrcmpiW(wVoice.c_str(), token.name.c_str()) == 0 ||
                 lstrcmpiW(wVoice.c_str(), token.full_name.c_str()) == 0)
@@ -530,38 +534,38 @@ int winsay_main(WINSAY_DATA& data)
         voice.SetVoice(pVoiceToken);
 
     // take care of output file
-    if (data.output_file.size())
+    if (data->output_file.size())
     {
         // add dot
-        if (data.file_format.size() && data.file_format[0] != '.')
+        if (data->file_format.size() && data->file_format[0] != '.')
         {
-            data.file_format = "." + data.file_format;
+            data->file_format = "." + data->file_format;
         }
 
         // get last 4 characters
         std::string four_chars;
-        if (data.output_file.size() >= 4)
+        if (data->output_file.size() >= 4)
         {
-            four_chars = data.output_file.substr(data.output_file.size() - 4, 4);
+            four_chars = data->output_file.substr(data->output_file.size() - 4, 4);
         }
         CharLowerA(&four_chars[0]);
 
         if (four_chars != ".wav")
         {
-            data.output_file += data.file_format;
+            data->output_file += data->file_format;
         }
 
         ::CoCreateInstance(CLSID_SpStream, NULL, CLSCTX_ALL,
                            IID_ISpStream, (void **)&pStream);
         if (pStream)
         {
-            MAnsiToWide wOutputFile(CP_ACP, data.output_file.c_str());
+            MAnsiToWide wOutputFile(CP_ACP, data->output_file.c_str());
 
             WAVEFORMATEX fmt;
             fmt.wFormatTag = WAVE_FORMAT_PCM;
-            fmt.nChannels = data.channels;
+            fmt.nChannels = data->channels;
             fmt.wBitsPerSample = 16;
-            fmt.nSamplesPerSec = data.bit_rate;
+            fmt.nSamplesPerSec = data->bit_rate;
             fmt.nBlockAlign = 2;
             fmt.nAvgBytesPerSec = fmt.nSamplesPerSec * fmt.nChannels * fmt.wBitsPerSample / 8;
             fmt.cbSize = 0;
@@ -577,7 +581,7 @@ int winsay_main(WINSAY_DATA& data)
     }
 
     // speak now
-    voice.Speak(data.text, false);
+    voice.Speak(data->text, false);
 
     // clean up
     if (pVoiceToken)
@@ -594,32 +598,30 @@ int winsay_main(WINSAY_DATA& data)
     return EXIT_SUCCESS;
 }
 
-// automatically calls CoInitialize and CoUninitialize functions
-class CAutoCoInitialize
+// create WINSAY_DATA structure
+extern "C" WINSAY_DATA *
+winsay_create(void)
 {
-public:
-    HRESULT m_hr;
-    CAutoCoInitialize() : m_hr(S_FALSE)
-    {
-        m_hr = CoInitialize(NULL);
-    }
-    ~CAutoCoInitialize()
-    {
-        CoUninitialize();
-        m_hr = S_FALSE;
-    }
-};
+    return new WINSAY_DATA;
+}
+
+// destroy WINSAY_DATA structure
+extern "C" void
+winsay_destroy(WINSAY_DATA *data)
+{
+    delete data;
+}
 
 #ifndef WINSPY_LIBRARY
 // the main function
 int main(int argc, char **argv)
 {
-    CAutoCoInitialize co_init;
+    winsay_co_init co_init;
     WINSAY_DATA data;
 
-    if (0 != winsay_command_line(data, argc, argv))
+    if (0 != winsay_command_line(&data, argc, argv))
         return EXIT_FAILURE;
 
-    return winsay_main(data);
+    return winsay_main(&data);
 }
 #endif  // ndef WINSPY_LIBRARY
