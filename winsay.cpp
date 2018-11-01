@@ -105,9 +105,9 @@ winsay_command_line(WINSAY_DATA *data, int argc, char **argv)
     int opt, opt_index;
     std::string arg;
 
-    opterr = 0;  /* NOTE: opterr == 1 is not compatible to getopt_port */
+    data->clear();
 
-    data->mode = WINSAY_SAY;
+    opterr = 0;  /* NOTE: opterr == 1 is not compatible to getopt_port */
 
     // for each command line option
     while ((opt = getopt_long(argc, argv, "hv:i:o:", winsay_opts, &opt_index)) != -1)
@@ -218,7 +218,8 @@ winsay_command_line(WINSAY_DATA *data, int argc, char **argv)
             case 'f':
                 if (!optarg)
                 {
-                    fprintf(stderr, "ERROR: option '-%c' requires a parameter.\n", optopt);
+                    data->input_file = "-";
+                    continue;
                 }
                 break;
 
