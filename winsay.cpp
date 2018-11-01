@@ -631,7 +631,7 @@ int main(int argc, char **argv)
     winsay_co_init co_init;
     WINSAY_DATA data;
 
-    if (0 != winsay_command_line(&data, argc, argv))
+    if (EXIT_FAILURE == winsay_command_line(&data, argc, argv))
         return EXIT_FAILURE;
 
     return winsay_say(&data);
